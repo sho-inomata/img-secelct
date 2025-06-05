@@ -1,4 +1,24 @@
-/* App.css */
+/* App.css - Sith Theme */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&display=swap');
+
+:root {
+  --sith-red: #ff0000;
+  --sith-dark-red: #8b0000;
+  --sith-black: #0a0a0a;
+  --sith-gray: #1a1a1a;
+  --sith-light-gray: #2a2a2a;
+  --sith-accent: #ff3333;
+  --sith-text: #cccccc;
+  --sith-highlight: #ff6666;
+}
+
+body {
+  background-color: var(--sith-black);
+  color: var(--sith-text);
+  font-family: 'Orbitron', sans-serif;
+  background-image: url('https://www.transparenttextures.com/patterns/carbon-fibre.png');
+}
+
 .App {
   width: 100%;
   max-width: 1200px;
@@ -7,22 +27,40 @@
 }
 
 .drop-area {
-  border: 2px dashed #ccc;
+  border: 2px dashed var(--sith-dark-red);
   border-radius: 8px;
   padding: 40px;
   text-align: center;
   cursor: pointer;
   transition: all 0.3s ease;
+  background-color: var(--sith-gray);
+  box-shadow: 0 0 10px rgba(255, 0, 0, 0.2);
 }
 
 .drop-area.active {
-  border-color: #3b82f6;
-  background-color: rgba(59, 130, 246, 0.05);
+  border-color: var(--sith-red);
+  background-color: rgba(255, 0, 0, 0.1);
+  box-shadow: 0 0 20px rgba(255, 0, 0, 0.4);
 }
 
 .image-list-container {
   max-height: calc(100vh - 300px);
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--sith-red) var(--sith-gray);
+}
+
+.image-list-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.image-list-container::-webkit-scrollbar-track {
+  background: var(--sith-gray);
+}
+
+.image-list-container::-webkit-scrollbar-thumb {
+  background-color: var(--sith-red);
+  border-radius: 4px;
 }
 
 .button-group {
@@ -37,4 +75,76 @@
   .button-group {
     flex-direction: column;
   }
+}
+
+/* Sith themed elements */
+h1, h2, h3 {
+  color: var(--sith-red);
+  text-shadow: 0 0 5px rgba(255, 0, 0, 0.5);
+  letter-spacing: 1px;
+}
+
+button {
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 600;
+  border: none;
+  box-shadow: 0 0 10px rgba(255, 0, 0, 0.3);
+}
+
+button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
+}
+
+button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.bg-blue-500 {
+  background-color: var(--sith-red) !important;
+}
+
+.hover\:bg-blue-600:hover {
+  background-color: var(--sith-dark-red) !important;
+}
+
+.bg-green-500 {
+  background-color: var(--sith-dark-red) !important;
+}
+
+.hover\:bg-green-600:hover {
+  background-color: var(--sith-red) !important;
+}
+
+.bg-purple-500 {
+  background-color: var(--sith-gray) !important;
+  border: 1px solid var(--sith-red);
+}
+
+.hover\:bg-purple-600:hover {
+  background-color: var(--sith-light-gray) !important;
+}
+
+.bg-yellow-500 {
+  background-color: var(--sith-light-gray) !important;
+  border: 1px solid var(--sith-red);
+}
+
+.hover\:bg-yellow-600:hover {
+  background-color: var(--sith-gray) !important;
+}
+
+.ring-blue-500 {
+  --tw-ring-color: var(--sith-red) !important;
+  --tw-ring-offset-shadow: 0 0 10px rgba(255, 0, 0, 0.5) !important;
+}
+
+/* Custom classes for Sith theme */
+.sith-container {
+  background-color: var(--sith-gray);
+  border: 1px solid var(--sith-dark-red);
+  border-radius: 8px;
+  box-shadow: 0 0 15px rgba(255, 0, 0, 0.2);
 }

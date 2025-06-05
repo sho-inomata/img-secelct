@@ -342,19 +342,24 @@ const App: React.FC = () => {
   }, [images, selectedImageId]);
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4 md:p-8">
+    <div className="min-h-screen p-4 md:p-8">
       
       <div 
-        className="min-h-screen bg-gray-50 p-4 sm:p-6 md:p-8"
+        className="min-h-screen p-4 sm:p-6 md:p-8 drop-area"
         ref={dropAreaRef}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
       >
         <div className="max-w-7xl mx-auto">
-          <header className="mb-6">
-            <h1 className="text-3xl font-bold text-gray-900">ImageSelector</h1>
-            <p className="text-gray-600">画像を選択、プレビュー、モザイク対象としてマークし、選択した画像をダウンロードできます。</p>
+          <header className="sith-container p-4 mb-6 text-center">
+            <h1 className="text-3xl font-bold flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2L4 7v10l8 5 8-5V7l-8-5zm0 2.5L17 9v6l-5 3-5-3V9l5-4.5z" />
+              </svg>
+              GenScope
+            </h1>
+            <p className="mt-2">画像を選択、プレビュー、モザイク対象としてマークし、選択した画像をダウンロードできます。</p>
           </header>
           
           <div className="mb-6 flex flex-wrap gap-3">
@@ -440,14 +445,24 @@ const App: React.FC = () => {
           </div>
         
           {images.length > 0 && (
-            <div className="text-sm text-gray-600 mb-4">
-              {images.length} 個の画像 ({mosaicCount} 個がモザイク対象)
+            <div className="text-sm mb-4 sith-container p-2 rounded inline-block">
+              <span className="flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                </svg>
+                {images.length} 個の画像 
+                <span className="mx-1">|</span>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 ml-1" viewBox="0 0 20 20" fill="var(--sith-red)">
+                  <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                </svg>
+                {mosaicCount} 個がモザイク対象
+              </span>
             </div>
           )}
         
-          <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="sith-container rounded-lg shadow-md overflow-hidden">
             <div className="grid grid-cols-1 md:grid-cols-5 h-[calc(100vh-240px)]">
-              <div className="md:col-span-2 border-r p-4 overflow-y-auto" style={{ height: '100%' }}>
+              <div className="md:col-span-2 border-r border-gray-800 p-4 overflow-y-auto" style={{ height: '100%' }}>
                 <ImageList
                   images={images}
                   selectedImageId={selectedImageId}
@@ -464,7 +479,7 @@ const App: React.FC = () => {
             </div>
           </div>
         
-          <footer className="mt-8 text-center text-gray-500 text-sm">
+          <footer className="mt-8 text-center text-sm sith-container p-4 rounded-lg">
             <p>画像はブラウザ内で処理され、サーバーにアップロードされません。</p>
             <p className="mt-1">最大 {MAX_FILES} ファイル、1ファイルあたり最大 {MAX_FILE_SIZE_MB}MB まで対応</p>
           </footer>
