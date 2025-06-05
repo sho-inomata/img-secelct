@@ -6,7 +6,7 @@ import { ImageInfo } from './types';
 import { downloadImagesAsZip } from './utils/zip';
 import './App.css';
 
-const MAX_FILES = 300;
+const MAX_FILES = 1000;
 const MAX_FILE_SIZE_MB = 10;
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
