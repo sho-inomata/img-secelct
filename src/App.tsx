@@ -377,21 +377,7 @@ const App: React.FC = () => {
               className="hidden"
             />
           
-            <button
-              onClick={handleDownloadNonSelected}
-              disabled={images.length === 0}
-              className={`py-2 px-4 rounded-md flex items-center ${
-                images.length === 0 
-                  ? 'bg-gray-300 cursor-not-allowed text-gray-500' 
-                  : 'bg-green-500 hover:bg-green-600 text-white'
-              }`}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-              選択していない画像をダウンロード
-            </button>
-            
+
             <button
               onClick={handleDownloadSelected}
               disabled={mosaicCount === 0}
