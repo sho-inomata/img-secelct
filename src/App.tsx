@@ -146,6 +146,7 @@ const App: React.FC = () => {
 
   // Handle download of non-selected images
   const handleDownloadNonSelected = useCallback(() => {
+    // 選択されていない画像 = 現在選択中の画像以外のすべての画像
     const nonSelectedImages = images.filter(img => img.id !== selectedImageId);
     
     if (nonSelectedImages.length === 0) {
@@ -153,18 +154,29 @@ const App: React.FC = () => {
       return;
     }
     
+    // 非選択画像をダウンロード
     downloadImagesAsZip(nonSelectedImages, 'non-selected-images');
   }, [images, selectedImageId]);
   
   // Handle download of selected image
   const handleDownloadSelected = useCallback(() => {
-    if (!selectedImage) {
+    // 選択された画像が存在するか確認
+    if (!selectedImageId) {
       alert('選択された画像がありません。');
       return;
     }
     
-    downloadImagesAsZip([selectedImage], 'selected-image');
-  }, [selectedImage]);
+    // 選択中の画像を取得
+    const currentSelectedImage = images.find(img => img.id === selectedImageId);
+    
+    if (!currentSelectedImage) {
+      alert('選択された画像が見つかりません。');
+      return;
+    }
+    
+    // 選択画像をダウンロード
+    downloadImagesAsZip([currentSelectedImage], 'selected-image');
+  }, [images, selectedImageId]);
   
   // Handle download of all images
   const handleDownloadAll = useCallback(() => {

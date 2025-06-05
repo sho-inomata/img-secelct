@@ -9,18 +9,34 @@ import { ImageInfo } from '../types';
  */
 export const downloadImagesAsZip = async (images: ImageInfo[], zipName?: string): Promise<void> => {
   try {
-    const zip = new JSZip();
-    
-    if (images.length === 0) {
+    // 画像が存在するかチェック
+    if (!images || images.length === 0) {
       alert('ダウンロードできる画像がありません。');
       return;
     }
     
+    console.log(`Preparing to download ${images.length} images with name: ${zipName || 'images'}`);
+    
+    const zip = new JSZip();
+    let addedFiles = 0;
+    
     // Add each image to the zip file
     for (const image of images) {
-      // Get the file data directly from the File object
-      const fileData = await image.file.arrayBuffer();
-      zip.file(image.name, fileData);
+      try {
+        // 画像ファイルが存在するかチェック
+        if (!image || !image.file) {
+          console.warn('Invalid image object or missing file:', image);
+          continue;
+        }
+        
+        // Get the file data directly from the File object
+        const fileData = await image.file.arrayBuffer();
+        zip.file(image.name || `image-${addedFiles}.jpg`, fileData);
+        addedFiles++;
+      } catch (fileError) {
+        console.error(`Error processing file ${image?.name}:`, fileError);
+        // 個別のファイルエラーでは処理を中断せず、次のファイルを処理
+      }
     }
     
     // Generate the zip file as a blob
