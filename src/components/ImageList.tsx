@@ -6,11 +6,33 @@ const ImageList: React.FC<ImageListProps> = ({
   selectedImageId, 
   onSelectImage, 
   onToggleMosaic, 
-  onDeleteImage 
+  onDeleteImage
 }) => {
   return (
     <div className="h-full flex flex-col">
-      <h2 className="text-xl font-bold mb-4">画像リスト</h2>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-bold">画像リスト</h2>
+        {images.length > 0 && (
+          <div
+            className={`py-1 px-3 text-sm rounded cursor-pointer select-none ${images.length > 0 && images.every(img => img.isMarkedForMosaic) ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+            onClick={() => {
+              console.log('すべてモザイク対象がクリックされました');
+              // すべての画像のモザイク状態を切り替える
+              const allMarked = images.every(img => img.isMarkedForMosaic);
+              images.forEach(img => {
+                // すべてチェックされている場合はすべて外す、そうでない場合はすべてチェックする
+                if (!allMarked) {
+                  onToggleMosaic(img.id);
+                } else if (!img.isMarkedForMosaic) {
+                  onToggleMosaic(img.id);
+                }
+              });
+            }}
+          >
+            {images.length > 0 && images.every(img => img.isMarkedForMosaic) ? '✓ ' : ''}すべてモザイク対象
+          </div>
+        )}
+      </div>
       <div className="image-list-container flex-1 overflow-y-auto pr-2">
         {images.length === 0 ? (
           <div className="text-gray-500 text-center py-8">
@@ -27,7 +49,13 @@ const ImageList: React.FC<ImageListProps> = ({
                   relative border rounded-lg overflow-hidden cursor-pointer
                   ${selectedImageId === image.id ? 'ring-2 ring-blue-500' : ''}
                 `}
-                onClick={() => onSelectImage(image.id)}
+                onClick={(e) => {
+                  // チェックボックスやラベルのクリックイベントと競合しないようにする
+                  const target = e.target as HTMLElement;
+                  if (target.tagName !== 'INPUT' && target.tagName !== 'LABEL') {
+                    onSelectImage(image.id);
+                  }
+                }}
               >
                 <img 
                   src={image.url} 
@@ -50,24 +78,18 @@ const ImageList: React.FC<ImageListProps> = ({
                 </div>
                 <div className="p-2 bg-white">
                   <p className="text-xs truncate" title={image.name}>{image.name}</p>
-                  <div className="flex items-center mt-1">
-                    <input
-                      type="checkbox"
-                      id={`mosaic-${image.id}`}
-                      checked={image.isMarkedForMosaic}
-                      onChange={(e) => {
+                  <div className="mt-1">
+                    <div 
+                      className={`w-full py-1 px-2 text-xs text-center rounded cursor-pointer select-none ${image.isMarkedForMosaic ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+                      onClick={(e) => {
                         e.stopPropagation();
+                        console.log('モザイクボタンがクリックされました', image.id);
+                        // モザイク切り替え関数のみ呼び出す
                         onToggleMosaic(image.id);
                       }}
-                      className="mr-2"
-                    />
-                    <label 
-                      htmlFor={`mosaic-${image.id}`}
-                      className="text-xs cursor-pointer"
-                      onClick={(e) => e.stopPropagation()}
                     >
-                      モザイク
-                    </label>
+                      {image.isMarkedForMosaic ? '✓ ' : ''}モザイク対象
+                    </div>
                   </div>
                 </div>
               </div>

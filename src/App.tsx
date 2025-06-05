@@ -1,9 +1,10 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useMemo } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import ImageList from './components/ImageList';
 import ImagePreview from './components/ImagePreview';
 import { ImageInfo } from './types';
 import { downloadImagesAsZip } from './utils/zip';
+import './App.css';
 
 const MAX_FILES = 300;
 const MAX_FILE_SIZE_MB = 10;
@@ -12,11 +13,15 @@ const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const App: React.FC = () => {
   const [images, setImages] = useState<ImageInfo[]>([]);
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
-  // mosaicUrl変数は不要になったため削除
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropAreaRef = useRef<HTMLDivElement>(null);
 
   const selectedImage = images.find(img => img.id === selectedImageId) || null;
+  
+  // モザイク対象の画像数をカウント
+  const mosaicCount = useMemo(() => {
+    return images.filter(img => img.isMarkedForMosaic).length;
+  }, [images]);
 
   const handleFileUpload = useCallback((files: FileList) => {
     const fileArray = Array.from(files);
@@ -52,7 +57,8 @@ const App: React.FC = () => {
       file,
       url: URL.createObjectURL(file),
       name: file.name,
-      isMarkedForMosaic: false
+      isMarkedForMosaic: false,
+      isSelected: false // 初期状態では選択されていない
     }));
     
     setImages(prevImages => [...prevImages, ...newImages]);
@@ -106,15 +112,52 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // Toggle mosaic marking
+  // Toggle mosaic marking - モザイク対象を切り替えるシンプルな関数
   const handleToggleMosaic = useCallback((id: string) => {
-    setImages(prevImages => 
-      prevImages.map(img => 
+    console.log(`モザイク切り替え: ID=${id}`);
+    
+    // 単純に配列をコピーして変更する方法に変更
+    setImages(prevImages => {
+      // 配列のコピーを作成
+      const newImages = [...prevImages];
+      
+      // 対象の画像を探す
+      const index = newImages.findIndex(img => img.id === id);
+      if (index === -1) return prevImages; // 見つからなければ変更なし
+      
+      // 新しいモザイク状態を計算
+      const newMosaicState = !newImages[index].isMarkedForMosaic;
+      console.log(`画像 ${id} のモザイク状態を ${newImages[index].isMarkedForMosaic} から ${newMosaicState} に変更`);
+      
+      // 対象の画像のモザイク状態と選択状態を変更
+      newImages[index] = {
+        ...newImages[index],
+        isMarkedForMosaic: newMosaicState,
+        isSelected: newMosaicState // モザイク対象と選択状態を連動
+      };
+      
+      return newImages;
+    });
+  }, []);
+
+  // Toggle selection - モザイク状態と連動
+  const handleToggleSelect = useCallback((id: string) => {
+    setImages(prevImages => {
+      const targetImage = prevImages.find(img => img.id === id);
+      if (!targetImage) return prevImages;
+      
+      const newSelectedState = !targetImage.isSelected;
+      
+      return prevImages.map(img => 
         img.id === id 
-          ? { ...img, isMarkedForMosaic: !img.isMarkedForMosaic } 
+          ? { 
+              ...img, 
+              isSelected: newSelectedState,
+              isMarkedForMosaic: newSelectedState // 選択状態とモザイク対象を連動させる
+            } 
           : img
-      )
-    );
+      );
+    });
   }, []);
 
   // Delete image
@@ -144,39 +187,35 @@ const App: React.FC = () => {
     });
   }, [selectedImageId]);
 
-  // Handle download of non-selected images
+  // すべての画像のモザイク状態を切り替える関数
+  const handleToggleSelectAll = useCallback(() => {
+    // すべてモザイク対象になっているかチェック
+    const allMarkedForMosaic = images.length > 0 && images.every(img => img.isMarkedForMosaic);
+    
+    setImages(prevImages => 
+      prevImages.map(img => ({ 
+        ...img, 
+        isMarkedForMosaic: !allMarkedForMosaic,
+        isSelected: !allMarkedForMosaic // モザイク対象と選択状態を連動させる
+      }))
+    );
+  }, [images]);
+
+  // Download non-mosaic images
   const handleDownloadNonSelected = useCallback(() => {
-    // 選択されていない画像 = 現在選択中の画像以外のすべての画像
-    const nonSelectedImages = images.filter(img => img.id !== selectedImageId);
+    const nonMosaicImages = images.filter(img => !img.isMarkedForMosaic);
+    if (nonMosaicImages.length === 0) return;
     
-    if (nonSelectedImages.length === 0) {
-      alert('選択されていない画像がありません。すべての画像が選択されているか、削除されています。');
-      return;
-    }
-    
-    // 非選択画像をダウンロード
-    downloadImagesAsZip(nonSelectedImages, 'non-selected-images');
-  }, [images, selectedImageId]);
-  
-  // Handle download of selected image
+    downloadImagesAsZip(nonMosaicImages, "non-mosaic-images.zip");
+  }, [images]);
+
+  // Download mosaic marked images
   const handleDownloadSelected = useCallback(() => {
-    // 選択された画像が存在するか確認
-    if (!selectedImageId) {
-      alert('選択された画像がありません。');
-      return;
-    }
+    const mosaicImages = images.filter(img => img.isMarkedForMosaic);
+    if (mosaicImages.length === 0) return;
     
-    // 選択中の画像を取得
-    const currentSelectedImage = images.find(img => img.id === selectedImageId);
-    
-    if (!currentSelectedImage) {
-      alert('選択された画像が見つかりません。');
-      return;
-    }
-    
-    // 選択画像をダウンロード
-    downloadImagesAsZip([currentSelectedImage], 'selected-image');
-  }, [images, selectedImageId]);
+    downloadImagesAsZip(mosaicImages, "mosaic-images.zip");
+  }, [images]);
   
   // Handle download of all images
   const handleDownloadAll = useCallback(() => {
@@ -355,9 +394,9 @@ const App: React.FC = () => {
             
             <button
               onClick={handleDownloadSelected}
-              disabled={!selectedImage}
+              disabled={mosaicCount === 0}
               className={`py-2 px-4 rounded-md flex items-center ${
-                !selectedImage 
+                mosaicCount === 0 
                   ? 'bg-gray-300 cursor-not-allowed text-gray-500' 
                   : 'bg-blue-500 hover:bg-blue-600 text-white'
               }`}
@@ -365,7 +404,22 @@ const App: React.FC = () => {
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
-              選択した画像をダウンロード
+              モザイク対象の画像をダウンロード ({mosaicCount})
+            </button>
+            
+            <button
+              onClick={handleDownloadNonSelected}
+              disabled={images.length === 0 || mosaicCount === images.length}
+              className={`py-2 px-4 rounded-md flex items-center ${
+                images.length === 0 || mosaicCount === images.length
+                  ? 'bg-gray-300 cursor-not-allowed text-gray-500' 
+                  : 'bg-green-500 hover:bg-green-600 text-white'
+              }`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              モザイク対象でない画像をダウンロード ({images.length - mosaicCount})
             </button>
             
             <button
@@ -380,7 +434,7 @@ const App: React.FC = () => {
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
-              すべての画像をダウンロード
+              すべての画像をダウンロード ({images.length})
             </button>
           
             <button
@@ -401,7 +455,7 @@ const App: React.FC = () => {
         
           {images.length > 0 && (
             <div className="text-sm text-gray-600 mb-4">
-              {images.length} 個の画像 ({images.filter(img => img.isMarkedForMosaic).length} 個がモザイク対象)
+              {images.length} 個の画像 ({mosaicCount} 個がモザイク対象)
             </div>
           )}
         
@@ -414,6 +468,8 @@ const App: React.FC = () => {
                   onSelectImage={setSelectedImageId}
                   onToggleMosaic={handleToggleMosaic}
                   onDeleteImage={handleDeleteImage}
+                  onToggleSelect={handleToggleSelect}
+                  onToggleSelectAll={handleToggleSelectAll}
                 />
               </div>
               <div className="md:col-span-3 p-4 overflow-hidden" style={{ height: '100%' }}>
