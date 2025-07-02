@@ -20,9 +20,9 @@ const App: React.FC = () => {
   const selectedImage = images.find((img) => img.id === selectedImageId) || null;
 
   // =============== Helpers ===============
-  const mosaicCount = useMemo(() => images.filter((img) => img.isMarkedForMosaic).length, [images]); // 現在チェックされている枚数
+  const mosaicCount = useMemo(() => images.filter((img) => img.isMarkedForMosaic).length, [images]);
 
-
+  // =============== File Upload ===============
   const handleFileUpload = useCallback(
     (files: FileList) => {
       const fileArray = Array.from(files);
@@ -56,19 +56,25 @@ const App: React.FC = () => {
     [images.length, selectedImageId]
   );
 
-  const handleFileInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.length) {
-      handleFileUpload(e.target.files);
-      e.target.value = '';
-    }
-  }, [handleFileUpload]);
+  const handleFileInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files?.length) {
+        handleFileUpload(e.target.files);
+        e.target.value = '';
+      }
+    },
+    [handleFileUpload]
+  );
 
   // ===== Drag & Drop =====
-  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    if (e.dataTransfer.files?.length) handleFileUpload(e.dataTransfer.files);
-    dropAreaRef.current?.classList.remove('bg-blue-50', 'border-blue-300');
-  }, [handleFileUpload]);
+  const handleDrop = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      if (e.dataTransfer.files?.length) handleFileUpload(e.dataTransfer.files);
+      dropAreaRef.current?.classList.remove('bg-blue-50', 'border-blue-300');
+    },
+    [handleFileUpload]
+  );
 
   const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -82,33 +88,40 @@ const App: React.FC = () => {
 
   // ===== Image actions =====
   const handleToggleMosaic = useCallback((id: string) => {
-    setImages((prev) => prev.map((img) => {
-      if (img.id !== id) return img;
-      const toggled = !img.isMarkedForMosaic;
-      // カウンタはオンにした時だけインクリメント、オフでは変えない
-      if (toggled) setMosaicCounter((c) => c + 1);
-      return { ...img, isMarkedForMosaic: toggled, isSelected: toggled };
-    }));
+    setImages((prev) =>
+      prev.map((img) => {
+        if (img.id !== id) return img;
+        const toggled = !img.isMarkedForMosaic;
+        if (toggled) {
+          setMosaicCounter((c) => c + 1);
+        } else {
+          setMosaicCounter((c) => (c > 0 ? c - 1 : 0));
+        }
+        return { ...img, isMarkedForMosaic: toggled, isSelected: toggled };
+      })
+    );
   }, []);
 
   const handleDeleteImage = useCallback((id: string) => {
     setImages((prev) => {
       const target = prev.find((i) => i.id === id);
-      if (target) URL.revokeObjectURL(target.url);
+      if (target) {
+        URL.revokeObjectURL(target.url);
+        if (target.isMarkedForMosaic) {
+          setMosaicCounter((c) => (c > 0 ? c - 1 : 0));
+        }
+      }
       return prev.filter((i) => i.id !== id);
     });
   }, []);
 
-  // ===== Downloads & Count Reset =====
+  // ===== Downloads =====
   const handleDownloadSelected = useCallback(() => {
     const sel = images.filter((i) => i.isMarkedForMosaic);
     if (sel.length) downloadImagesAsZip(sel, 'mosaic-images.zip');
   }, [images]);
 
-  const handleDownloadNonSelected = useCallback(() => {
-    const non = images.filter((i) => !i.isMarkedForMosaic);
-    if (non.length) downloadImagesAsZip(non, 'non-mosaic-images.zip');
-  }, [images]);
+  
 
   const handleDownloadAll = useCallback(() => {
     if (images.length) downloadImagesAsZip(images, 'all-images.zip');
@@ -119,8 +132,6 @@ const App: React.FC = () => {
     if (mosaicCounter === 0) return;
     setMosaicCounter(0);
   }, [mosaicCounter]);
-
-
 
   // ===== Keyboard navigation =====
   useEffect(() => {
@@ -159,51 +170,91 @@ const App: React.FC = () => {
       {/* Header */}
       <header className="max-w-7xl mx-auto p-4 mb-6 text-center">
         <h1 className="text-3xl font-bold text-red-600">GenScope</h1>
-        {/* Mosaic check counter display */}
-        <div className="mt-2 text-sm text-blue-600">チェック数: {mosaicCounter} 枚</div>
+        <div className="flex flex-col items-center gap-1 mt-2 text-blue-600 font-semibold">
+          <div className="text-lg">チェック数(シーン): {mosaicCounter} 枚</div>
+          <div className="text-sm">採用総数: {mosaicCount} 枚</div>
+        </div>
         <p className="mt-2">画像を選択、プレビュー、モザイク対象としてマークし、選択した画像をダウンロードできます。</p>
+
+        <div className="mt-4 flex flex-wrap gap-3 justify-center">
+          {/* Upload */}
+          <button
+            className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-md flex items-center"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            画像をアップロード
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".jpg,.jpeg,.png,.webp"
+            multiple
+            onChange={handleFileInputChange}
+            className="hidden"
+          />
+
+          {/* Download */}
+          <button
+            disabled={mosaicCount === 0}
+            onClick={handleDownloadSelected}
+            className={`py-2 px-4 rounded-md flex items-center ${
+              mosaicCount === 0
+                ? 'bg-gray-300 cursor-not-allowed text-gray-500'
+                : 'bg-blue-500 hover:bg-blue-600 text-white'
+            }`}
+          >
+            採用対象 ({mosaicCount}) DL
+          </button>
+          <button
+            disabled={images.length === 0}
+            onClick={handleDownloadAll}
+            className={`py-2 px-4 rounded-md flex items-center ${
+              images.length === 0
+                ? 'bg-gray-300 cursor-not-allowed text-gray-500'
+                : 'bg-purple-500 hover:bg-purple-600 text-white'
+            }`}
+          >
+            すべて DL ({images.length})
+          </button>
+
+          {/* Reset count */}
+          <button
+            disabled={mosaicCounter === 0}
+            onClick={handleResetCount}
+            className={`py-2 px-4 rounded-md flex items-center ${
+              mosaicCounter === 0
+                ? 'bg-gray-300 cursor-not-allowed text-gray-500'
+                : 'bg-red-500 hover:bg-red-600 text-white'
+            }`}
+          >
+            カウントリセット
+          </button>
+        </div>
       </header>
 
       {/* Preview & List */}
       <main className="max-w-7xl mx-auto grid md:grid-cols-2 gap-6">
         <ImagePreview
-            selectedImage={selectedImage}
-            images={images}
-            selectedImageId={selectedImageId}
-            onSelectImage={setSelectedImageId}
-            onToggleMosaic={handleToggleMosaic}
-            mosaicCounter={mosaicCounter}
-          />
+          selectedImage={selectedImage}
+          images={images}
+          selectedImageId={selectedImageId}
+          onSelectImage={setSelectedImageId}
+          onToggleMosaic={handleToggleMosaic}
+          mosaicCounter={mosaicCounter}
+          mosaicTotal={mosaicCount}
+        />
         <ImageList
           images={images}
           selectedImageId={selectedImageId}
           onSelectImage={setSelectedImageId}
           onToggleMosaic={handleToggleMosaic}
           onDeleteImage={handleDeleteImage}
-          horizontal
+          columns={3}
         />
       </main>
-
-      {/* Footer */}
-      <footer className="max-w-7xl mx-auto mt-8 flex flex-wrap gap-3 items-center">
-        {/* Upload */}
-        <button className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-md flex items-center" onClick={() => fileInputRef.current?.click()}>
-          画像をアップロード
-        </button>
-        <input ref={fileInputRef} type="file" accept=".jpg,.jpeg,.png,.webp" multiple onChange={handleFileInputChange} className="hidden" />
-
-        {/* Download buttons */}
-        <button disabled={mosaicCount === 0} onClick={handleDownloadSelected} className={`py-2 px-4 rounded-md flex items-center ${mosaicCount===0?'bg-gray-300 cursor-not-allowed text-gray-500':'bg-blue-500 hover:bg-blue-600 text-white'}`}>モザイク対象 ({mosaicCount}) DL</button>
-        <button disabled={images.length===0||mosaicCount===images.length} onClick={handleDownloadNonSelected} className={`py-2 px-4 rounded-md flex items-center ${images.length===0||mosaicCount===images.length?'bg-gray-300 cursor-not-allowed text-gray-500':'bg-green-500 hover:bg-green-600 text-white'}`}>非モザイク DL</button>
-        <button disabled={images.length===0} onClick={handleDownloadAll} className={`py-2 px-4 rounded-md flex items-center ${images.length===0?'bg-gray-300 cursor-not-allowed text-gray-500':'bg-purple-500 hover:bg-purple-600 text-white'}`}>すべて DL ({images.length})</button>
-        {/* Reset count button */}
-        <button disabled={mosaicCounter===0} onClick={handleResetCount} className={`py-2 px-4 rounded-md flex items-center ${mosaicCounter===0?'bg-gray-300 cursor-not-allowed text-gray-500':'bg-red-500 hover:bg-red-600 text-white'}`}>カウントリセット</button>
-
-
-        <p className="w-full mt-2 text-sm text-gray-600 text-center">画像はブラウザ内で処理され、サーバーにアップロードされません。最大 {MAX_FILES} ファイル、1ファイルあたり最大 {MAX_FILE_SIZE_MB}MB。</p>
-      </footer>
     </div>
   );
 };
 
 export default App;
+

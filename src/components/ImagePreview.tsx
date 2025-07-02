@@ -3,6 +3,7 @@ import ImageList from './ImageList';
 import { ImagePreviewProps } from '../types';
 
 interface ExtendedPreviewProps extends ImagePreviewProps {
+  mosaicTotal: number;
   images: import('../types').ImageInfo[];
   selectedImageId: string | null;
   onSelectImage: (id: string) => void;
@@ -10,7 +11,7 @@ interface ExtendedPreviewProps extends ImagePreviewProps {
   mosaicCounter: number;
 }
 
-const ImagePreview: React.FC<ExtendedPreviewProps> = ({ selectedImage, images, selectedImageId, onSelectImage, onToggleMosaic, mosaicCounter }) => {
+const ImagePreview: React.FC<ExtendedPreviewProps> = ({ selectedImage, images, selectedImageId, onSelectImage, onToggleMosaic, mosaicCounter, mosaicTotal }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -124,11 +125,15 @@ const ImagePreview: React.FC<ExtendedPreviewProps> = ({ selectedImage, images, s
   }
 
   return (
-    <div ref={containerRef} className="flex flex-col h-full relative">
+    <div
+      ref={containerRef}
+      className={`h-full relative ${isFullscreen ? 'flex flex-row' : 'flex flex-col'}`}
+    >
       {/* Count overlay when fullscreen */}
       {isFullscreen && (
-        <div className="absolute top-2 left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded-md z-10">
-          チェック数: {mosaicCounter} 枚
+        <div className="absolute top-2 left-2 flex flex-col gap-1 bg-blue-600 text-white text-sm font-semibold px-3 py-1 rounded-md z-10">
+          <div>カウンター: {mosaicCounter} 枚</div>
+          <div>総採用: {mosaicTotal} 枚</div>
         </div>
       )}
       {/* Fullscreen toggle button */}
@@ -139,45 +144,55 @@ const ImagePreview: React.FC<ExtendedPreviewProps> = ({ selectedImage, images, s
         {isFullscreen ? '閉じる' : '全画面'}
       </button>
       {/* Title */}
-      <h2 className="text-xl font-bold mb-2">プレビュー</h2>
+      {!isFullscreen && (<h2 className="text-xl font-bold mb-2">プレビュー</h2>)}
       
-      {/* Main container - takes full height minus the title */}
-      <div className="flex flex-col flex-grow overflow-hidden">
+      {/* Main container - preview area */}
+      <div className="flex flex-col flex-1 overflow-hidden">
         {/* Image container - takes 70% of the available height */}
-        <div className="bg-gray-100 rounded-lg flex items-center justify-center mb-3" style={{ height: '70%' }}>
+        <div
+            className={`relative bg-gray-100 rounded-lg flex items-center justify-center ${isFullscreen ? 'overflow-auto' : 'mb-3'}`}
+            style={isFullscreen ? { flex: 1 } : { height: '70%' }}
+        >
+          {/* 採用バッジ */}
+          {selectedImage.isMarkedForMosaic && (
+            <div className="absolute top-2 right-2 bg-blue-600 text-white text-xs px-2 py-0.5 rounded-sm">
+              採用
+            </div>
+          )}
           <img 
             src={selectedImage.url} 
             alt={selectedImage.name} 
-            className="object-contain" 
-            style={{ maxHeight: '100%', maxWidth: '100%' }}
+            className="object-contain max-h-full max-w-full"
           />
         </div>
         
-        {/* Info section - takes remaining height with scroll if needed */}
-        <div className="overflow-y-auto flex-grow">
-          <h3 className="font-medium">ファイル情報</h3>
-          <p className="text-sm text-gray-600 break-all">{selectedImage.name}</p>
-          <p className="text-sm text-gray-600 mt-1">
-            {(selectedImage.file.size / 1024 / 1024).toFixed(2)} MB
-          </p>
-          {selectedImage.isMarkedForMosaic && (
-            <div className="mt-2 bg-yellow-100 text-yellow-800 p-2 rounded-md text-sm">
-              この画像はモザイク処理対象としてマークされています
-            </div>
-          )}
-
-        </div>
+        {/* Info section - hidden in fullscreen */}
+        {!isFullscreen && (
+          <div className="overflow-y-auto flex-grow">
+            <h3 className="font-medium">ファイル情報</h3>
+            <p className="text-sm text-gray-600 break-all">{selectedImage.name}</p>
+            <p className="text-sm text-gray-600 mt-1">
+              {(selectedImage.file.size / 1024 / 1024).toFixed(2)} MB
+            </p>
+            {selectedImage.isMarkedForMosaic && (
+              <div className="mt-2 bg-yellow-100 text-yellow-800 p-2 rounded-md text-sm">
+                この画像はモザイク処理対象としてマークされています
+              </div>
+            )}
+          </div>
+        )}
       </div>
-      {/* When fullscreen, show list at bottom */}
+      {/* When fullscreen, show list on the right side */}
       {isFullscreen && (
-        <div className="absolute bottom-0 left-0 right-0 bg-white/80 backdrop-blur-sm p-2">
+        <div className="w-60 max-h-full overflow-y-auto bg-white/90 backdrop-blur-sm p-2 border-l">
+          <h3 className="font-medium mb-2 text-center">一覧</h3>
           <ImageList
             images={images}
             selectedImageId={selectedImageId}
             onSelectImage={onSelectImage}
             onToggleMosaic={onToggleMosaic}
             onDeleteImage={() => {}}
-            horizontal
+            columns={1}
           />
         </div>
       )}

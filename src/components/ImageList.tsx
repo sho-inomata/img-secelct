@@ -1,13 +1,18 @@
 import React from 'react';
 import { ImageListProps } from '../types';
 
-const ImageList: React.FC<ImageListProps> = ({ 
+interface ExtendedProps extends ImageListProps {
+  columns?: number; // 指定があれば固定列
+}
+
+const ImageList: React.FC<ExtendedProps> = ({ 
   images, 
   selectedImageId, 
   onSelectImage, 
   onToggleMosaic, 
   onDeleteImage,
-  horizontal = false
+  horizontal = false,
+  columns,
 }) => {
   return (
     <div className="h-full w-full">
@@ -45,12 +50,12 @@ const ImageList: React.FC<ImageListProps> = ({
             「画像をアップロード」ボタンをクリックしてください。
           </div>
         ) : (
-          <div className={horizontal ? 'flex flex-row gap-3 flex-nowrap' : 'grid grid-cols-2 gap-3'}>
+          <div className={horizontal ? 'flex flex-row gap-3 flex-nowrap' : (columns === 3 ? 'grid grid-cols-3 gap-2' : columns === 1 ? 'grid grid-cols-1 gap-2' : 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4')}>
             {images.map((image) => (
               <div 
                 key={image.id} 
                 className={`
-                  ${horizontal ? 'w-28' : ''}
+                  ${horizontal ? 'w-48' : '' /* no extra width in grid mode */}
                   relative border rounded-lg overflow-hidden cursor-pointer
                   ${selectedImageId === image.id ? 'ring-2 ring-blue-500' : ''}
                 `}
@@ -65,7 +70,7 @@ const ImageList: React.FC<ImageListProps> = ({
                 <img 
                   src={image.url} 
                   alt={image.name}
-                  className={horizontal ? 'h-24 w-28 object-cover' : 'w-full h-32 object-cover'}
+                  className={horizontal ? 'h-32 w-48 object-cover' : (columns ? 'w-full h-28 object-contain' : 'w-full h-40 object-cover')}
                 />
                 <div className="absolute top-1 right-1 flex space-x-1">
                   <button 
