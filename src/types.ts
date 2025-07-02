@@ -13,8 +13,9 @@ export interface ImageListProps {
   onSelectImage: (id: string) => void;
   onToggleMosaic: (id: string) => void;
   onDeleteImage: (id: string) => void;
-  onToggleSelect: (id: string) => void;
-  onToggleSelectAll: () => void;
+  onToggleSelect?: (id: string) => void;
+  onToggleSelectAll?: () => void;
+  horizontal?: boolean;
 }
 
 export interface ImagePreviewProps {

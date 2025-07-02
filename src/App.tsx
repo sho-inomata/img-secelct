@@ -1,9 +1,9 @@
-import React, { useState, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import ImageList from './components/ImageList';
 import ImagePreview from './components/ImagePreview';
-import { ImageInfo } from './types';
 import { downloadImagesAsZip } from './utils/zip';
+import { ImageInfo } from './types';
 import './App.css';
 
 const MAX_FILES = 1000;
@@ -115,30 +115,56 @@ const App: React.FC = () => {
   // Toggle mosaic marking - モザイク対象を切り替えるシンプルな関数
   const handleToggleMosaic = useCallback((id: string) => {
     console.log(`モザイク切り替え: ID=${id}`);
-    
-    // 単純に配列をコピーして変更する方法に変更
     setImages(prevImages => {
-      // 配列のコピーを作成
       const newImages = [...prevImages];
-      
-      // 対象の画像を探す
       const index = newImages.findIndex(img => img.id === id);
-      if (index === -1) return prevImages; // 見つからなければ変更なし
-      
-      // 新しいモザイク状態を計算
+      if (index === -1) return prevImages;
       const newMosaicState = !newImages[index].isMarkedForMosaic;
-      console.log(`画像 ${id} のモザイク状態を ${newImages[index].isMarkedForMosaic} から ${newMosaicState} に変更`);
-      
-      // 対象の画像のモザイク状態と選択状態を変更
       newImages[index] = {
         ...newImages[index],
         isMarkedForMosaic: newMosaicState,
-        isSelected: newMosaicState // モザイク対象と選択状態を連動
+        isSelected: newMosaicState
       };
-      
       return newImages;
     });
   }, []);
+
+  // =========================
+  // Keyboard Navigation (Arrow keys) & Enter to toggle mosaic
+  // =========================
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (images.length === 0) return;
+
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (selectedImageId === null) {
+          setSelectedImageId(images[0].id);
+          return;
+        }
+        const currentIndex = images.findIndex(img => img.id === selectedImageId);
+        const nextIndex = (currentIndex + 1) % images.length;
+        setSelectedImageId(images[nextIndex].id);
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (selectedImageId === null) {
+          setSelectedImageId(images[images.length - 1].id);
+          return;
+        }
+        const currentIndex = images.findIndex(img => img.id === selectedImageId);
+        const prevIndex = (currentIndex - 1 + images.length) % images.length;
+        setSelectedImageId(images[prevIndex].id);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (selectedImageId) {
+          handleToggleMosaic(selectedImageId);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [images, selectedImageId, handleToggleMosaic]);
 
   // Toggle selection - モザイク状態と連動
   const handleToggleSelect = useCallback((id: string) => {
@@ -343,23 +369,19 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen p-4 md:p-8">
-      
       <div 
         className="min-h-screen p-4 sm:p-6 md:p-8 drop-area"
         ref={dropAreaRef}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-      >
+        onDragLeave={handleDragLeave}>
+          
         <div className="max-w-7xl mx-auto">
-          <header className="sith-container p-4 mb-6 text-center">
-            <h1 className="text-3xl font-bold flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mr-2" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2L4 7v10l8 5 8-5V7l-8-5zm0 2.5L17 9v6l-5 3-5-3V9l5-4.5z" />
-              </svg>
-              GenScope
-            </h1>
-            <p className="mt-2">画像を選択、プレビュー、モザイク対象としてマークし、選択した画像をダウンロードできます。</p>
+          <header className="sith-container p-4 mb-6">
+            <div className="flex items-center justify-between mb-6">
+              <h1 className="text-3xl font-bold text-center text-red-600 flex-grow">GenScope</h1>
+            </div>
+            <p className="mt-2 text-center">画像を選択、プレビュー、モザイク対象としてマークし、選択した画像をダウンロードできます。</p>
           </header>
           
           <div className="mb-6 flex flex-wrap gap-3">
@@ -434,20 +456,11 @@ const App: React.FC = () => {
               className={`py-2 px-4 rounded-md flex items-center ${
                 !images.some(img => img.isMarkedForMosaic) 
                   ? 'bg-gray-300 cursor-not-allowed text-gray-500' 
-                  : 'bg-yellow-500 hover:bg-yellow-600 text-white'
-              }`}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
-              モザイクエディタへ送信
-            </button>
-          </div>
         
-          {images.length > 0 && (
-            <div className="text-sm mb-4 sith-container p-2 rounded inline-block">
-              <span className="flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+      <div className="max-w-7xl mx-auto">
+        <header className="sith-container p-4 mb-6">
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-3xl font-bold text-center text-red-600 flex-grow">GenScope</h1>
                   <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
                 </svg>
                 {images.length} 個の画像 
@@ -457,33 +470,86 @@ const App: React.FC = () => {
                 </svg>
                 {mosaicCount} 個がモザイク対象
               </span>
-            </div>
-          )}
-        
-          <div className="sith-container rounded-lg shadow-md overflow-hidden">
-            <div className="grid grid-cols-1 md:grid-cols-5 h-[calc(100vh-240px)]">
-              <div className="md:col-span-2 border-r border-gray-800 p-4 overflow-y-auto" style={{ height: '100%' }}>
-                <ImageList
-                  images={images}
-                  selectedImageId={selectedImageId}
-                  onSelectImage={setSelectedImageId}
-                  onToggleMosaic={handleToggleMosaic}
-                  onDeleteImage={handleDeleteImage}
-                  onToggleSelect={handleToggleSelect}
-                  onToggleSelectAll={handleToggleSelectAll}
-                />
-              </div>
-              <div className="md:col-span-3 p-4 overflow-hidden" style={{ height: '100%' }}>
-                <ImagePreview selectedImage={selectedImage} />
-              </div>
-            </div>
           </div>
+          )}
+          <p className="mt-2 text-center">画像を選択、プレビュー、モザイク対象としてマークし、選択した画像をダウンロードできます。</p>
+        </header>
         
-          <footer className="mt-8 text-center text-sm sith-container p-4 rounded-lg">
-            <p>画像はブラウザ内で処理され、サーバーにアップロードされません。</p>
-            <p className="mt-1">最大 {MAX_FILES} ファイル、1ファイルあたり最大 {MAX_FILE_SIZE_MB}MB まで対応</p>
-          </footer>
-        </div>
+        <div className="mb-6 flex flex-wrap gap-3">
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-md flex items-center"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+            画像をアップロード
+          </button>
+          
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileInputChange}
+            accept=".jpg,.jpeg,.png,.webp"
+            multiple
+            className="hidden"
+          />
+        
+
+
+          <button
+            onClick={handleDownloadSelected}
+            disabled={mosaicCount === 0}
+            className={`py-2 px-4 rounded-md flex items-center ${
+              mosaicCount === 0 
+                ? 'bg-gray-300 cursor-not-allowed text-gray-500' 
+                : 'bg-blue-500 hover:bg-blue-600 text-white'
+            }`}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            モザイク対象の画像をダウンロード ({mosaicCount})
+          </button>
+          
+          <button
+            onClick={handleDownloadNonSelected}
+            disabled={images.length === 0 || mosaicCount === images.length}
+            className={`py-2 px-4 rounded-md flex items-center ${
+              images.length === 0 || mosaicCount === images.length
+                ? 'bg-gray-300 cursor-not-allowed text-gray-500' 
+                : 'bg-green-500 hover:bg-green-600 text-white'
+            }`}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            モザイク対象でない画像をダウンロード ({images.length - mosaicCount})
+          </button>
+          
+          <button
+            onClick={handleDownloadAll}
+            disabled={images.length === 0}
+            className={`py-2 px-4 rounded-md flex items-center ${
+              images.length === 0 
+                ? 'bg-gray-300 cursor-not-allowed text-gray-500' 
+                : 'bg-purple-500 hover:bg-purple-600 text-white'
+            }`}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            すべての画像をダウンロード ({images.length})
+          </button>
+        
+          <button
+            onClick={handleSendToMosaicEditor}
+            disabled={!images.some(img => img.isMarkedForMosaic)}
+            className={`py-2 px-4 rounded-md flex items-center ${
+              !images.some(img => img.isMarkedForMosaic) 
+                ? 'bg-gray-300 cursor-not-allowed text-gray-500' 
+                : 'bg-yellow-500 hover:bg-yellow-600 text-white'
+            }`}
       </div>
     </div>
   );

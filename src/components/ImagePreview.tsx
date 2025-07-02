@@ -1,10 +1,60 @@
-import React from 'react';
+import React, { useRef, useState, useEffect } from 'react';
+import ImageList from './ImageList';
 import { ImagePreviewProps } from '../types';
 
-const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedImage }) => {
+interface ExtendedPreviewProps extends ImagePreviewProps {
+  images: import('../types').ImageInfo[];
+  selectedImageId: string | null;
+  onSelectImage: (id: string) => void;
+  onToggleMosaic: (id: string) => void;
+  mosaicCounter: number;
+}
 
-  // Handle sending to mosaic editor
-  const handleSendToMosaicEditor = () => {
+const ImagePreview: React.FC<ExtendedPreviewProps> = ({ selectedImage, images, selectedImageId, onSelectImage, onToggleMosaic, mosaicCounter }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const handleToggleFullscreen = () => {
+    const elem = containerRef.current;
+    if (!elem) return;
+
+    const doc: any = document;
+    if (!isFullscreen) {
+      // Enter
+      const request = (
+        elem.requestFullscreen ||
+        (elem as any).webkitRequestFullscreen ||
+        (elem as any).mozRequestFullScreen ||
+        (elem as any).msRequestFullscreen
+      );
+      if (request) {
+        request.call(elem).catch((err: any) => console.error('Fullscreen error', err));
+      }
+    } else {
+      // Exit
+      const exit = (
+        doc.exitFullscreen ||
+        doc.webkitExitFullscreen ||
+        doc.mozCancelFullScreen ||
+        doc.msExitFullscreen
+      );
+      if (exit) {
+        exit.call(doc);
+      }
+    }
+  };
+
+  // Sync state when user exits fullscreen via Esc key, etc.
+  useEffect(() => {
+    const onChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
+
+  // ==== mosaic editor removed ====
+  /* const handleSendToMosaicEditor = () => {
     if (selectedImage && selectedImage.isMarkedForMosaic) {
       try {
         console.log('Opening mosaic editor for image:', selectedImage.name);
@@ -60,6 +110,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedImage }) => {
       }
     }
   };
+*/
 
   if (!selectedImage) {
     return (
@@ -73,7 +124,20 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedImage }) => {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div ref={containerRef} className="flex flex-col h-full relative">
+      {/* Count overlay when fullscreen */}
+      {isFullscreen && (
+        <div className="absolute top-2 left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded-md z-10">
+          チェック数: {mosaicCounter} 枚
+        </div>
+      )}
+      {/* Fullscreen toggle button */}
+      <button
+        onClick={handleToggleFullscreen}
+        className="absolute top-2 right-2 bg-gray-800 text-white text-xs px-2 py-1 rounded-md hover:bg-gray-700 z-10"
+      >
+        {isFullscreen ? '閉じる' : '全画面'}
+      </button>
       {/* Title */}
       <h2 className="text-xl font-bold mb-2">プレビュー</h2>
       
@@ -101,17 +165,22 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedImage }) => {
               この画像はモザイク処理対象としてマークされています
             </div>
           )}
-          {selectedImage.isMarkedForMosaic && (
-            <button 
-              onClick={handleSendToMosaicEditor}
-              className="mt-3 inline-block bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-md"
 
-            >
-              モザイクエディタで開く
-            </button>
-          )}
         </div>
       </div>
+      {/* When fullscreen, show list at bottom */}
+      {isFullscreen && (
+        <div className="absolute bottom-0 left-0 right-0 bg-white/80 backdrop-blur-sm p-2">
+          <ImageList
+            images={images}
+            selectedImageId={selectedImageId}
+            onSelectImage={onSelectImage}
+            onToggleMosaic={onToggleMosaic}
+            onDeleteImage={() => {}}
+            horizontal
+          />
+        </div>
+      )}
     </div>
   );
 };

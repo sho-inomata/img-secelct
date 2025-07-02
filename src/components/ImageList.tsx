@@ -6,17 +6,20 @@ const ImageList: React.FC<ImageListProps> = ({
   selectedImageId, 
   onSelectImage, 
   onToggleMosaic, 
-  onDeleteImage
+  onDeleteImage,
+  horizontal = false
 }) => {
   return (
-    <div className="h-full flex flex-col">
-      <div className="flex justify-between items-center mb-4">
+    <div className="h-full w-full">
+      {/* Header hidden in horizontal mode */}
+      {!horizontal && (
+        <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold">画像リスト</h2>
         {images.length > 0 && (
           <div
             className={`py-1 px-3 text-sm rounded cursor-pointer select-none ${images.length > 0 && images.every(img => img.isMarkedForMosaic) ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
             onClick={() => {
-              console.log('すべてモザイク対象がクリックされました');
+              console.log('すべて採用がクリックされました');
               // すべての画像のモザイク状態を切り替える
               const allMarked = images.every(img => img.isMarkedForMosaic);
               images.forEach(img => {
@@ -29,11 +32,12 @@ const ImageList: React.FC<ImageListProps> = ({
               });
             }}
           >
-            {images.length > 0 && images.every(img => img.isMarkedForMosaic) ? '✓ ' : ''}すべてモザイク対象
+            {images.length > 0 && images.every(img => img.isMarkedForMosaic) ? '✓ ' : ''}すべて採用
           </div>
         )}
       </div>
-      <div className="image-list-container flex-1 overflow-y-auto pr-2">
+      )}
+      <div className={`image-list-container ${horizontal ? 'overflow-x-auto' : 'overflow-y-auto'} flex-1 pr-2`}>
         {images.length === 0 ? (
           <div className="text-gray-500 text-center py-8">
             画像がありません。<br />
@@ -41,11 +45,12 @@ const ImageList: React.FC<ImageListProps> = ({
             「画像をアップロード」ボタンをクリックしてください。
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
+          <div className={horizontal ? 'flex flex-row gap-3 flex-nowrap' : 'grid grid-cols-2 gap-3'}>
             {images.map((image) => (
               <div 
                 key={image.id} 
                 className={`
+                  ${horizontal ? 'w-28' : ''}
                   relative border rounded-lg overflow-hidden cursor-pointer
                   ${selectedImageId === image.id ? 'ring-2 ring-blue-500' : ''}
                 `}
@@ -59,8 +64,8 @@ const ImageList: React.FC<ImageListProps> = ({
               >
                 <img 
                   src={image.url} 
-                  alt={image.name} 
-                  className="w-full h-32 object-cover"
+                  alt={image.name}
+                  className={horizontal ? 'h-24 w-28 object-cover' : 'w-full h-32 object-cover'}
                 />
                 <div className="absolute top-1 right-1 flex space-x-1">
                   <button 
@@ -88,7 +93,7 @@ const ImageList: React.FC<ImageListProps> = ({
                         onToggleMosaic(image.id);
                       }}
                     >
-                      {image.isMarkedForMosaic ? '✓ ' : ''}モザイク対象
+                      {image.isMarkedForMosaic ? '✓ ' : ''}採用
                     </div>
                   </div>
                 </div>
